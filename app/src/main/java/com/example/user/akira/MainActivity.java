@@ -1,9 +1,15 @@
 package com.example.user.akira;
 
+import android.animation.ObjectAnimator;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.WindowManager;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -31,6 +37,13 @@ public class MainActivity extends AppCompatActivity {
     private TextView textView;
     private Switch swh;
     public int sign;
+    static String retStr = new String();
+    private ImageView mwater;
+    private ImageView mplant;
+    static float ydpi;
+    static float plant_height = 8;
+
+
 
 
     @Override
@@ -40,16 +53,23 @@ public class MainActivity extends AppCompatActivity {
 
         textView = (TextView) findViewById(R.id.text);
         swh = (Switch) findViewById(R.id.switch1);
+        mwater = (ImageView) findViewById(R.id.imageView);
+        mplant = (ImageView) findViewById(R.id.imageView2);
 
         swh.setOnCheckedChangeListener(SHListener);
 
+        DisplayMetrics dm = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        ydpi = dm.ydpi;
     }
+
 
     @Override
     protected void onResume(){
         super.onResume();
+        Draw_plant();
         GET_Waterlevel();
-    }
+      }
 
 
     public void GET_Waterlevel() {
@@ -63,17 +83,16 @@ public class MainActivity extends AppCompatActivity {
                       .header("deviceKey", "I7kHh3w0vcS8n3qM")
                       .build();
               try {
-                  final Response response = client.newCall(request).execute();
-                  final String getStr = response.body().string();
+                  Response response = client.newCall(request).execute();
+                  String getStr = response.body().string();
                   String[] Str1 = getStr.split(":|\\}");
 
                   int index = Arrays.asList(Str1).indexOf("{\"value\"");
-                  final String retStr = Str1[index + 1];
-                  System.out.println(Str1[index + 1]);
-
+                  retStr = Str1[index + 1];
                   runOnUiThread(new Runnable() {
                       @Override
                       public void run() {
+                          Draw_waterlevel(retStr);
                           textView.setText(retStr);
                       }
                   });
@@ -84,6 +103,30 @@ public class MainActivity extends AppCompatActivity {
          },1,5,TimeUnit.SECONDS);
     }
 
+    public void Draw_plant(){
+        int height = cm2px(plant_height);
+        android.view.ViewGroup.LayoutParams playoutParams = mplant.getLayoutParams();
+        playoutParams.height = height;
+        mplant.setLayoutParams(playoutParams);
+        System.out.println("plantpx = " + height);
+    }
+
+    public void Draw_waterlevel(String Str){
+        float waterlevel_cm = Float.parseFloat(Str);
+        int height = cm2px(waterlevel_cm);
+        android.view.ViewGroup.LayoutParams layoutParams = mwater.getLayoutParams();
+        layoutParams.height = height;
+        mwater.setLayoutParams(layoutParams);
+        //System.out.printf("Str = %s, ydpi = %f, dp = %f, height = %d%n",Str,ydpi,dp,height);
+    }
+
+
+    public int cm2px(float cm){
+        // 150dp = 8cm
+        float dp = cm * 18.75f;
+        int px_o = Math.round(dp * (ydpi / 160));
+        return px_o;
+    }
 
     Switch.OnCheckedChangeListener SHListener = new Switch.OnCheckedChangeListener() {
         @Override
