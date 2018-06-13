@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.lang.String;
 import java.util.List;
 
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.Arrays;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView textView;
     private Switch swh;
     public int sign;
-    static String retStr = new String();
+    static String retStr;
     private ImageView mwater;
     private ImageView mplant;
     static float ydpi;
@@ -89,43 +90,52 @@ public class MainActivity extends AppCompatActivity {
 
                   int index = Arrays.asList(Str1).indexOf("{\"value\"");
                   retStr = Str1[index + 1];
-                  runOnUiThread(new Runnable() {
-                      @Override
-                      public void run() {
-                          Draw_waterlevel(retStr);
-                          textView.setText(retStr);
-                      }
-                  });
+                  RunUI();
               } catch (IOException e) {
                   e.printStackTrace();
               }
             }
-         },1,5,TimeUnit.SECONDS);
+         },0,1,TimeUnit.MINUTES);
+    }
+
+    public void RunUI(){
+        AsyncTask UITask = new AsyncTask() {
+            @Override
+            protected Object doInBackground(final Object[] params) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        textView.setText(String.format(Locale.getDefault(), "%.2f", Float.parseFloat(retStr)));
+                        Draw_waterlevel();
+                    }
+                });
+                return null;
+            }
+        };
+        UITask.execute();
     }
 
     public void Draw_plant(){
-        int height = cm2px(plant_height);
-        android.view.ViewGroup.LayoutParams playoutParams = mplant.getLayoutParams();
-        playoutParams.height = height;
-        mplant.setLayoutParams(playoutParams);
-        System.out.println("plantpx = " + height);
+                int height = cm2px(plant_height);
+                android.view.ViewGroup.LayoutParams playoutParams = mplant.getLayoutParams();
+                playoutParams.height = height;
+                mplant.setLayoutParams(playoutParams);
     }
 
-    public void Draw_waterlevel(String Str){
-        float waterlevel_cm = Float.parseFloat(Str);
-        int height = cm2px(waterlevel_cm);
-        android.view.ViewGroup.LayoutParams layoutParams = mwater.getLayoutParams();
-        layoutParams.height = height;
-        mwater.setLayoutParams(layoutParams);
-        //System.out.printf("Str = %s, ydpi = %f, dp = %f, height = %d%n",Str,ydpi,dp,height);
+    public void Draw_waterlevel(){
+                float waterlevel_cm = Float.parseFloat(retStr);
+                int height = cm2px(waterlevel_cm);
+                android.view.ViewGroup.LayoutParams layoutParams = mwater.getLayoutParams();
+                layoutParams.height = height;
+                mwater.setLayoutParams(layoutParams);
     }
+
 
 
     public int cm2px(float cm){
         // 150dp = 8cm
         float dp = cm * 18.75f;
-        int px_o = Math.round(dp * (ydpi / 160));
-        return px_o;
+        return Math.round(dp * (ydpi / 160));
     }
 
     Switch.OnCheckedChangeListener SHListener = new Switch.OnCheckedChangeListener() {
@@ -184,8 +194,6 @@ public class MainActivity extends AppCompatActivity {
                     System.out.println("狀態>>>" + response.code());
                     System.out.println("資料>>>" + response.body().string());
                 } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (Exception e) {
                     e.printStackTrace();
                 }
                 return null;
